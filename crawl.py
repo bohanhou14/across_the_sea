@@ -103,14 +103,12 @@ def crawl(root, wanted_content=[], within_domain=True):
 
 def extract_information(address, html):
     '''Extract contact information from html, returning a list of (url, category, content) pairs,
-    where category is one of PHONE, ADDRESS, EMAIL'''
+    where category is one of NEWS, TOPIC'''
     results = []
-    for match in re.findall('\d\d\d-\d\d\d-\d\d\d\d', str(html)):
-        results.append((address, 'PHONE', match))
-    for match in re.findall('(?:[A-Z][a-z.-]+[ ]?)+, (?:[A-Za-z.-]+[ ]?)+ \d\d\d\d\d', str(html)):
-        results.append((address, 'ADDRESS', match))
-    for match in re.findall('[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z][a-zA-Z][a-zA-Z]', str(html)):
-        results.append((address, 'EMAIL', match))
+    for match in re.findall('(?i)\bnews\b', str(html)):
+        results.append((address, 'NEWS', match))
+    for match in re.findall('(?i)\babortion\b', str(html)):
+        results.append((address, 'TOPIC', match))
     return results
 
 
