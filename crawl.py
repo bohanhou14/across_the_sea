@@ -1,4 +1,5 @@
 import logging
+import random
 import re
 import sys
 from bs4 import BeautifulSoup
@@ -9,6 +10,8 @@ logging.basicConfig(level=logging.DEBUG, filename='output.log', filemode='w')
 visitlog = logging.getLogger('visited')
 extractlog = logging.getLogger('extracted')
 
+base = -1
+solution = ""
 
 def parse_links(root, html):
     soup = BeautifulSoup(html, 'html.parser')
@@ -92,6 +95,12 @@ def crawl(root, wanted_content=[], within_domain=True):
                 extracted.append(ex)
                 extractlog.debug(ex)
             q = parse_links_sorted(url, html)
+            if base == 2 and classifier(url) == 2:
+                solution = url
+            if base == 0 and classifier(url) == 1:
+                solution = url
+            if base == 1 and classifier(url) == 0:
+                solution = url
             while not q.empty():
                 x, y = q.get()
                 queue.put((x, y))
@@ -117,9 +126,15 @@ def writelines(filename, data):
         for d in data:
             print(d, file=fout)
 
+def classifier(url):
+    options = [0, 1, 2]
+    result = random.choice(options)
+    
+    return result
 
 def main():
     site = sys.argv[1]
+    base = classifier(site)
 
     links = get_links(site)
     writelines('links.txt', links)
@@ -130,6 +145,9 @@ def main():
     visited, extracted = crawl(site)
     writelines('visited.txt', visited)
     writelines('extracted.txt', extracted)
+
+    print(base)
+    print(solution)
 
 
 if __name__ == '__main__':
