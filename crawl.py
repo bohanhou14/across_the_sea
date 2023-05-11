@@ -126,7 +126,21 @@ def writelines(filename, data):
         for d in data:
             print(d, file=fout)
 
+def get_text(url):
+    res = request.urlopen(url)
+    html = res.read().decode('utf-8')
+    soup = BeautifulSoup(html, 'html.parser')
+    texts = []
+    # print(soup.get_text())
+    for item in soup.find_all('p', class_ = ""):
+        texts.append(item.get_text(strip = True))
+    texts = " ".join(texts)
+    texts = texts.replace("\n", " ")
+    return texts
+
 def classifier(url):
+    texts = get_text(url)
+    
     options = [0, 1, 2]
     result = random.choice(options)
     
