@@ -95,11 +95,11 @@ def crawl(root, wanted_content=[], within_domain=True):
                 extractlog.debug(ex)
             q = parse_links_sorted(url, html)
             if base == 2 and classifier(url, html) == 2:
-                solution = url
+                solution = 2
             if base == 0 and classifier(url, html) == 1:
-                solution = url
+                solution = 1
             if base == 1 and classifier(url, html) == 0:
-                solution = url
+                solution = 0
             if solution == base:
                 solution = -1
             while not q.empty():
