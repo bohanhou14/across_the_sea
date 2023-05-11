@@ -84,7 +84,6 @@ def crawl(root, wanted_content=[], within_domain=True):
             if (domain != parse.urlparse(root).netloc and domain != "www." + parse.urlparse(root).netloc):
                 continue
         try:
-            #print(url)           
             req = request.urlopen(url)
             html = req.read().decode('utf-8')
             if len(wanted_content) > 0 and req.headers['Content-Type'] not in wanted_content:
@@ -95,12 +94,14 @@ def crawl(root, wanted_content=[], within_domain=True):
                 extracted.append(ex)
                 extractlog.debug(ex)
             q = parse_links_sorted(url, html)
-            if base == 2 and classifier(url) == 2:
+            if base == 2 and classifier(url, html) == 2:
                 solution = url
-            if base == 0 and classifier(url) == 1:
+            if base == 0 and classifier(url, html) == 1:
                 solution = url
-            if base == 1 and classifier(url) == 0:
+            if base == 1 and classifier(url, html) == 0:
                 solution = url
+            if solution == base:
+                solution = -1
             while not q.empty():
                 x, y = q.get()
                 queue.put((x, y))
@@ -126,21 +127,16 @@ def writelines(filename, data):
         for d in data:
             print(d, file=fout)
 
-def get_text(url):
-    res = request.urlopen(url)
-    html = res.read().decode('utf-8')
+def classifier(url, html):
     soup = BeautifulSoup(html, 'html.parser')
-    texts = []
-    # print(soup.get_text())
-    for item in soup.find_all('p', class_ = ""):
-        texts.append(item.get_text(strip = True))
-    texts = " ".join(texts)
-    texts = texts.replace("\n", " ")
-    return texts
+    data = []
 
-def classifier(url):
-    texts = get_text(url)
-    
+    for x in soup.find_all('p', class_ = ""):
+        data.append(x.get_text(strip = True))
+
+    data = " ".join(data)
+    data = data.replace("\n", " ")
+
     options = [0, 1, 2]
     result = random.choice(options)
     
@@ -148,7 +144,9 @@ def classifier(url):
 
 def main():
     site = sys.argv[1]
-    base = classifier(site)
+    req = request.urlopen(site)
+    html = req.read().decode('utf-8')
+    base = classifier(site, html)
 
     links = get_links(site)
     writelines('links.txt', links)
