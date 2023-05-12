@@ -47,7 +47,7 @@ def parse_links_sorted(root, html):
         if(check_self_referencing(link) == False):
             count = link.count('/') * 10
             if(link.count("abortion") > 0):
-                count = count - 10 * link.count("abortion")
+                count = count - 100 * link.count("abortion")
             count = count - 1 * link.count("news")
             q.put((count, link))
 
