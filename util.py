@@ -8,7 +8,7 @@ import torch
 from torch.nn.functional import normalize
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
-model = AutoModelForSequenceClassification.from_pretrained("bohanhou14/abortion_news_model/").to(device)
+model = AutoModelForSequenceClassification.from_pretrained("bohanhou14/abortion_news_model").to(device)
 tokenizer = AutoTokenizer.from_pretrained("launch/POLITICS")
 
 def get_text(url):
