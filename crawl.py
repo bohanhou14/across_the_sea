@@ -5,6 +5,7 @@ import sys
 from bs4 import BeautifulSoup
 from queue import PriorityQueue, Queue
 from urllib import parse, request
+from util import get_text, classify
 
 logging.basicConfig(level=logging.DEBUG, filename='output.log', filemode='w')
 visitlog = logging.getLogger('visited')
@@ -19,6 +20,12 @@ solution_text = ""
 solution2 = ""
 solution2_url = ""
 solution2_text = ""
+
+ideology_map = {
+    0: "liberal",
+    1: "conservative",
+    2: "neutral"
+}
 
 def parse_links(root, html):
     soup = BeautifulSoup(html, 'html.parser')
@@ -47,25 +54,6 @@ def parse_links_sorted(root, html):
     return q
 
 
-def get_links(url):
-    res = request.urlopen(url)
-    return list(parse_links(url, res.read().decode('utf-8')))
-
-
-def get_nonlocal_links(url):
-    '''Get a list of links on the page specificed by the url,
-    but only keep non-local links and non self-references.
-    Return a list of (link, title) pairs, just like get_links()'''
-
-    links = get_links(url)
-    o = parse.urlparse(url)
-    domain = o.netloc
-    filtered = []
-    for link, title in links:
-        if (parse.urlparse(link).netloc != domain and parse.urlparse(link).netloc != "www." + domain and (not check_self_referencing(link))): # check non-locality
-            filtered.append((link, title))
-    return filtered
-
 def check_self_referencing(url):
     last = url.rfind('/')
     if ('#' in url[last:-1]):
@@ -80,9 +68,7 @@ def crawl(root, wanted_content=[], within_domain=True):
     
     queue = PriorityQueue()
     queue.put((10, root))
-
-    visited = []
-    extracted = []
+    ro = parse.urlparse(root)
 
     while not queue.empty():
         url = queue.get()[1]
@@ -91,7 +77,7 @@ def crawl(root, wanted_content=[], within_domain=True):
         if within_domain:
             o = parse.urlparse(url)
             domain = o.netloc
-            if (domain != parse.urlparse(root).netloc and domain != "www." + parse.urlparse(root).netloc):
+            if (domain != ro.netloc and domain != "www." + ro.netloc):
                 continue
         try:
             req = request.urlopen(url)
@@ -100,13 +86,18 @@ def crawl(root, wanted_content=[], within_domain=True):
                 continue
             visited.append(url)
             visitlog.debug(url)
-            for ex in extract_information(url, html):
+            text = get_text(url)
+            pred, score = classify(text)
+            if pred not in ideologies and len(text.split()) > 100 and "news/" in o.path:
+                ex = "alternative article with " + ideology_map[pred] + " ideology found with an extreme score of " + str(score) 
+                print(ex)
+                ex += "\ntext: " + text + "\n\nurl: " + str(url)
                 extracted.append(ex)
-                extractlog.debug(ex)
+                ideologies.add(pred)
+            # if all three ideologies are collected, then break the loop and terminate the program
+            if len(ideologies) == 3:
+                break
             q = parse_links_sorted(url, html)
-            classifier(url, html)
-            if(base != solution != solution2 and solution != "" and solution2 != ""):
-                return visited, extracted # this is done once the documents are found (optional)
             while not q.empty():
                 x, y = q.get()
                 queue.put((x, y))
@@ -115,99 +106,28 @@ def crawl(root, wanted_content=[], within_domain=True):
 
     return visited, extracted
 
-
-def extract_information(address, html):
-    '''Extract contact information from html, returning a list of (url, category, content) pairs,
-    where category is one of NEWS, TOPIC'''
-    results = []
-    for match in re.findall('(?i)\bnews\b', str(html)):
-        results.append((address, 'NEWS', match))
-    for match in re.findall('(?i)\babortion\b', str(html)):
-        results.append((address, 'TOPIC', match))
-    return results
-
-
 def writelines(filename, data):
     with open(filename, 'w') as fout:
         for d in data:
             print(d, file=fout)
 
-# Note that for the sake of classification, the following is true:
-# 0 represents the algorithm believes this has a liberal bias
-# 1 represents the algorithm believes this has a conservative bias
-# 2 represents the algorithm believes this has a neutral bias
-def classifier(url, html):
-    soup = BeautifulSoup(html, 'html.parser')
-    data = []
-
-    for x in soup.find_all('p', class_ = ""):
-        data.append(x.get_text(strip = True))
-
-    data = " ".join(data)
-    data = data.replace("\n", " ")
-
-    if(url == base_url):
-        base_text = data
-
-    options = [0, 1, 2]
-    result = random.choice(options)
-    
-    if(result == 0 and base != 0):
-        if(solution == ""):
-            solution = 0
-            solution_url = url
-            solution_text = data
-        elif(solution2 == ""):
-            solution2 = 0
-            solution2_url = url
-            solution2_text = data
-    elif(result == 1 and base != 1):
-        if(solution == ""):
-            solution = 1
-            solution_url = url
-            solution_text = data
-        elif(solution2 == ""):
-            solution2 = 1
-            solution2_url = url
-            solution2_text = data
-    elif(result == 2 and base != 2):
-        if(solution == ""):
-            solution = 2
-            solution_url = url
-            solution_text = data
-        elif(solution2 == ""):
-            solution2 = 2
-            solution2_url = url
-            solution2_text = data
-
-    return result
-
 def main():
     site = sys.argv[1]
-    req = request.urlopen(site)
-    html = req.read().decode('utf-8')
-    base = classifier(site, html)
-    base_url = site
+    article = get_text(site)
+    article_ideology, score = classify(article)
+    global ideologies, visited, extracted
+    ideologies = {article_ideology}
+    visited = [] ; extracted = []
+    print("The stance of the article on abortion you are reading is: " + str(ideology_map[article_ideology]))
+    print("with extremeness: " + str(score))
 
-    links = get_links(site)
-    writelines('links.txt', links)
+    # crawl on a conservative abortion website
+    crawl("https://www.catholicnewsagency.com/tags/35/abortion")
+    # crawl on a liberal abortion website
+    crawl("https://www.nbcnews.com/politics/abortion-news")
 
-    nonlocal_links = get_nonlocal_links(site)
-    writelines('nonlocal.txt', nonlocal_links)
-
-    visited, extracted = crawl(site)
     writelines('visited.txt', visited)
     writelines('extracted.txt', extracted)
-
-    print("Original Url Classification: " + base)
-    print("Original Url: " + base_url)
-    print("Original Url Text: " + base_text)
-    print("Classification: " + solution)
-    print("Url: " + solution_url)
-    print(solution_text)
-    print("Classification: " + solution2)
-    print("Url: " + solution2_url)
-    print(solution2_text)
 
 if __name__ == '__main__':
     main()
