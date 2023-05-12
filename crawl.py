@@ -11,16 +11,6 @@ logging.basicConfig(level=logging.DEBUG, filename='output.log', filemode='w')
 visitlog = logging.getLogger('visited')
 extractlog = logging.getLogger('extracted')
 
-base = -1
-base_url = ""
-base_text = ""
-solution = ""
-solution_url = ""
-solution_text = ""
-solution2 = ""
-solution2_url = ""
-solution2_text = ""
-
 ideology_map = {
     0: "liberal",
     1: "conservative",
