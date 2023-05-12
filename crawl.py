@@ -12,6 +12,9 @@ extractlog = logging.getLogger('extracted')
 
 base = -1
 solution = ""
+solution_url = ""
+solution2 = ""
+solution2_url = ""
 
 def parse_links(root, html):
     soup = BeautifulSoup(html, 'html.parser')
@@ -31,7 +34,10 @@ def parse_links_sorted(root, html):
 
     for link, title in links:
         if(check_self_referencing(link) == False):
-            count = link.count('/')
+            count = link.count('/') * 10
+            if(link.count("abortion") > 0):
+                count = count - 10 * link.count("abortion")
+            count = count - 1 * link.count("news")
             q.put((count, link))
 
     return q
