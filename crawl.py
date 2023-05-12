@@ -11,10 +11,14 @@ visitlog = logging.getLogger('visited')
 extractlog = logging.getLogger('extracted')
 
 base = -1
+base_url = ""
+base_text = ""
 solution = ""
 solution_url = ""
+solution_text = ""
 solution2 = ""
 solution2_url = ""
+solution2_text = ""
 
 def parse_links(root, html):
     soup = BeautifulSoup(html, 'html.parser')
@@ -100,14 +104,9 @@ def crawl(root, wanted_content=[], within_domain=True):
                 extracted.append(ex)
                 extractlog.debug(ex)
             q = parse_links_sorted(url, html)
-            if base == 2 and classifier(url, html) == 2:
-                solution = 2
-            if base == 0 and classifier(url, html) == 1:
-                solution = 1
-            if base == 1 and classifier(url, html) == 0:
-                solution = 0
-            if solution == base:
-                solution = -1
+            classifier(url, html)
+            if(base != solution != solution2 and solution != "" and solution2 != ""):
+                return visited, extracted # this is done once the documents are found (optional)
             while not q.empty():
                 x, y = q.get()
                 queue.put((x, y))
@@ -143,9 +142,40 @@ def classifier(url, html):
     data = " ".join(data)
     data = data.replace("\n", " ")
 
+    if(url == base_url):
+        base_text = data
+
     options = [0, 1, 2]
     result = random.choice(options)
     
+    if(result == 0 and base != 0):
+        if(solution == ""):
+            solution = 0
+            solution_url = url
+            solution_text = data
+        elif(solution2 == ""):
+            solution2 = 0
+            solution2_url = url
+            solution2_text = data
+    elif(result == 1 and base != 1):
+        if(solution == ""):
+            solution = 1
+            solution_url = url
+            solution_text = data
+        elif(solution2 == ""):
+            solution2 = 1
+            solution2_url = url
+            solution2_text = data
+    elif(result == 2 and base != 2):
+        if(solution == ""):
+            solution = 2
+            solution_url = url
+            solution_text = data
+        elif(solution2 == ""):
+            solution2 = 2
+            solution2_url = url
+            solution2_text = data
+
     return result
 
 def main():
@@ -153,6 +183,7 @@ def main():
     req = request.urlopen(site)
     html = req.read().decode('utf-8')
     base = classifier(site, html)
+    base_url = site
 
     links = get_links(site)
     writelines('links.txt', links)
@@ -165,8 +196,14 @@ def main():
     writelines('extracted.txt', extracted)
 
     print(base)
+    print(base_url)
+    print(base_text)
     print(solution)
-
+    print(solution_url)
+    print(solution_text)
+    print(solution2)
+    print(solution2_url)
+    print(solution2_text)
 
 if __name__ == '__main__':
     main()
