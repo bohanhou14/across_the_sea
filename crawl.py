@@ -132,6 +132,10 @@ def writelines(filename, data):
         for d in data:
             print(d, file=fout)
 
+# Note that for the sake of classification, the following is true:
+# 0 represents the algorithm believes this has a liberal bias
+# 1 represents the algorithm believes this has a conservative bias
+# 2 represents the algorithm believes this has a neutral bias
 def classifier(url, html):
     soup = BeautifulSoup(html, 'html.parser')
     data = []
@@ -195,14 +199,14 @@ def main():
     writelines('visited.txt', visited)
     writelines('extracted.txt', extracted)
 
-    print(base)
-    print(base_url)
-    print(base_text)
-    print(solution)
-    print(solution_url)
+    print("Original Url Classification: " + base)
+    print("Original Url: " + base_url)
+    print("Original Url Text: " + base_text)
+    print("Classification: " + solution)
+    print("Url: " + solution_url)
     print(solution_text)
-    print(solution2)
-    print(solution2_url)
+    print("Classification: " + solution2)
+    print("Url: " + solution2_url)
     print(solution2_text)
 
 if __name__ == '__main__':
